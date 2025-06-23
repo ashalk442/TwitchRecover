@@ -1,91 +1,371 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<module type="JAVA_MODULE" version="4">
-  <component name="NewModuleRootManager">
-    <output url="file://$MODULE_DIR$/bin" />
-    <exclude-output />
-    <content url="file://$MODULE_DIR$">
-      <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
-    </content>
-    <orderEntry type="jdk" jdkName="1.8" jdkType="JavaSDK" />
-    <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module-library" exported="">
-      <library name="org.json:json:20201115" type="repository">
-        <properties maven-id="org.json:json:20201115" />
-        <CLASSES>
-          <root url="jar://$MAVEN_REPOSITORY$/org/json/json/20201115/json-20201115.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES />
-      </library>
-    </orderEntry>
-    <orderEntry type="module-library" exported="">
-      <library name="commons-io:commons-io:2.8.0" type="repository">
-        <properties maven-id="commons-io:commons-io:2.8.0" />
-        <CLASSES>
-          <root url="jar://$MAVEN_REPOSITORY$/commons-io/commons-io/2.8.0/commons-io-2.8.0.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES />
-      </library>
-    </orderEntry>
-    <orderEntry type="module-library" exported="">
-      <library>
-        <CLASSES>
-          <root url="jar://$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.16/lombok-1.18.16.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES />
-      </library>
-    </orderEntry>
-    <orderEntry type="module-library" exported="">
-      <library name="org.apache.httpcomponents:fluent-hc:4.5.13" type="repository">
-        <properties maven-id="org.apache.httpcomponents:fluent-hc:4.5.13" />
-        <CLASSES>
-          <root url="jar://$MAVEN_REPOSITORY$/org/apache/httpcomponents/fluent-hc/4.5.13/fluent-hc-4.5.13.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/org/apache/httpcomponents/httpclient/4.5.13/httpclient-4.5.13.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/org/apache/httpcomponents/httpcore/4.4.13/httpcore-4.4.13.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/commons-codec/commons-codec/1.11/commons-codec-1.11.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/commons-logging/commons-logging/1.2/commons-logging-1.2.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES />
-      </library>
-    </orderEntry>
-    <orderEntry type="module-library" exported="">
-      <library name="org.apache.httpcomponents:httpclient:4.2.3" type="repository">
-        <properties maven-id="org.apache.httpcomponents:httpclient:4.2.3" />
-        <CLASSES>
-          <root url="jar://$MAVEN_REPOSITORY$/org/apache/httpcomponents/httpclient/4.2.3/httpclient-4.2.3.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/org/apache/httpcomponents/httpcore/4.2.2/httpcore-4.2.2.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/commons-logging/commons-logging/1.1.1/commons-logging-1.1.1.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/commons-codec/commons-codec/1.6/commons-codec-1.6.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES />
-      </library>
-    </orderEntry>
-    <orderEntry type="module-library" exported="">
-      <library name="com.googlecode.json-simple:json-simple:1.1.1" type="repository">
-        <properties maven-id="com.googlecode.json-simple:json-simple:1.1.1" />
-        <CLASSES>
-          <root url="jar://$MAVEN_REPOSITORY$/com/googlecode/json-simple/json-simple/1.1.1/json-simple-1.1.1.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/junit/junit/4.10/junit-4.10.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/org/hamcrest/hamcrest-core/1.1/hamcrest-core-1.1.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES />
-      </library>
-    </orderEntry>
-    <orderEntry type="module-library" exported="">
-      <library name="org.apache.directory.studio:org.apache.commons.io:2.4" type="repository">
-        <properties maven-id="org.apache.directory.studio:org.apache.commons.io:2.4" />
-        <CLASSES>
-          <root url="jar://$MAVEN_REPOSITORY$/org/apache/directory/studio/org.apache.commons.io/2.4/org.apache.commons.io-2.4.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/commons-io/commons-io/2.4/commons-io-2.4.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES />
-      </library>
-    </orderEntry>
-  </component>
-</module>
+// File: TwitchVodDownloader.java
+
+import java.io.*;
+import java.net.URI;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Scanner;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+// Apache HttpClient for making HTTP requests
+import org.apache.http.HttpEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
+
+// Apache Commons IO for file operations
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+
+
+/**
+ * A Java program to demonstrate downloading a Twitch VOD (Video On Demand)
+ * by processing an HLS (HTTP Live Streaming) master playlist.
+ *
+ * IMPORTANT NOTE:
+ * Directly obtaining the master .m3u8 URL for any given Twitch VOD URL
+ * programmatically and reliably is very complex without using Twitch's
+ * authenticated GraphQL API or relying on frequently changing unofficial APIs.
+ * This example SIMULATES obtaining this URL for demonstration purposes.
+ * For a robust solution, consider using dedicated tools like 'streamlink' or 'yt-dlp'
+ * which handle the complexities of Twitch's streaming infrastructure.
+ *
+ * This code requires the following Maven/Gradle dependencies:
+ * - org.apache.httpcomponents:httpclient:4.5.14
+ * - commons-io:commons-io:2.16.1
+ */
+public class TwitchVodDownloader {
+
+    // Base URL for the hypothetical master playlist.
+    // In a real scenario, this would be dynamically fetched from Twitch APIs.
+    // Replace "YOUR_VOD_ID" with the actual VOD ID from the URL.
+    // Example (fictional): https://video-weaver.syd01.hls.twitch.tv/vod-id/2493324513/index-dvr.m3u8
+    // This example URL is for demonstration purposes.
+    private static final String MASTER_PLAYLIST_BASE_URL_FORMAT =
+            "https://video-weaver.syd01.hls.twitch.tv/vod-id/%s/index-dvr.m3u8";
+
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.println("Twitch VOD Downloader");
+        System.out.println("---------------------");
+        System.out.print("Enter Twitch VOD URL (e.g., https://www.twitch.tv/videos/2493324513): ");
+        String twitchVodUrl = scanner.nextLine();
+
+        String vodId = getVodIdFromUrl(twitchVodUrl);
+
+        if (vodId == null) {
+            System.err.println("Error: Could not extract VOD ID from the URL.");
+            System.err.println("Please ensure the URL is in the format: https://www.twitch.tv/videos/YOUR_VOD_ID");
+            scanner.close();
+            return;
+        }
+
+        System.out.println("Extracted VOD ID: " + vodId);
+
+        // --- Step 1: Simulate getting the Master Playlist URL ---
+        // In a real scenario, this would involve complex API calls to Twitch.
+        // For this example, we're constructing a hypothetical URL.
+        String masterPlaylistUrl = String.format(MASTER_PLAYLIST_BASE_URL_FORMAT, vodId);
+        System.out.println("Attempting to access master playlist at (hypothetical): " + masterPlaylistUrl);
+
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            // --- Step 2: Download the Master Playlist ---
+            System.out.println("Downloading master playlist...");
+            String masterPlaylistContent = downloadUrlContent(httpClient, masterPlaylistUrl);
+
+            if (masterPlaylistContent == null) {
+                System.err.println("Failed to download master playlist. Exiting.");
+                scanner.close();
+                return;
+            }
+
+            // --- Step 3: Parse Master Playlist and Select Quality ---
+            Map<String, String> qualities = parseMasterPlaylist(masterPlaylistContent);
+
+            if (qualities.isEmpty()) {
+                System.err.println("No qualities found in the master playlist. Exiting.");
+                scanner.close();
+                return;
+            }
+
+            System.out.println("\nAvailable Qualities:");
+            List<String> sortedQualities = new ArrayList<>(qualities.keySet());
+            sortedQualities.sort((q1, q2) -> {
+                // Try to parse resolutions for better sorting
+                Pattern p = Pattern.compile("(\\d+)p");
+                Matcher m1 = p.matcher(q1);
+                Matcher m2 = p.matcher(q2);
+                if (m1.find() && m2.find()) {
+                    try {
+                        return Integer.compare(Integer.parseInt(m2.group(1)), Integer.parseInt(m1.group(1)));
+                    } catch (NumberFormatException e) {
+                        // Fallback to string comparison if parsing fails
+                        return q2.compareTo(q1);
+                    }
+                }
+                return q2.compareTo(q1); // Default to reverse alphabetical if no 'p' found
+            });
+
+
+            for (int i = 0; i < sortedQualities.size(); i++) {
+                System.out.println((i + 1) + ". " + sortedQualities.get(i));
+            }
+
+            System.out.print("Enter the number for desired quality: ");
+            int qualityChoice = -1;
+            try {
+                qualityChoice = Integer.parseInt(scanner.nextLine());
+                if (qualityChoice < 1 || qualityChoice > sortedQualities.size()) {
+                    throw new IllegalArgumentException("Invalid choice.");
+                }
+            } catch (NumberFormatException | IllegalArgumentException e) {
+                System.err.println("Invalid input. Please enter a number from the list.");
+                scanner.close();
+                return;
+            }
+
+            String selectedQualityName = sortedQualities.get(qualityChoice - 1);
+            String selectedQualityRelativeUrl = qualities.get(selectedQualityName);
+            System.out.println("Selected quality: " + selectedQualityName);
+
+            // Construct the full URL for the selected quality's playlist
+            URL baseUrl = new URL(masterPlaylistUrl);
+            URL selectedQualityFullUrl = new URL(baseUrl, selectedQualityRelativeUrl);
+            System.out.println("Downloading quality playlist: " + selectedQualityFullUrl);
+
+            // --- Step 4: Download the Quality-Specific Playlist ---
+            String qualityPlaylistContent = downloadUrlContent(httpClient, selectedQualityFullUrl.toString());
+
+            if (qualityPlaylistContent == null) {
+                System.err.println("Failed to download quality playlist. Exiting.");
+                scanner.close();
+                return;
+            }
+
+            // --- Step 5: Parse Quality Playlist and Get Segment URLs ---
+            List<String> segmentRelativeUrls = parseQualityPlaylist(qualityPlaylistContent);
+
+            if (segmentRelativeUrls.isEmpty()) {
+                System.err.println("No video segments found in the quality playlist. Exiting.");
+                scanner.close();
+                return;
+            }
+
+            System.out.println(segmentRelativeUrls.size() + " video segments found.");
+
+            // --- Step 6: Download and Combine Segments ---
+            String outputFileName = vodId + "_" + selectedQualityName.replace(" ", "_") + ".ts";
+            File outputFile = new File(outputFileName);
+
+            FileOutputStream fos = new FileOutputStream(outputFile);
+            long downloadedBytes = 0;
+
+            for (int i = 0; i < segmentRelativeUrls.size(); i++) {
+                String segmentRelativeUrl = segmentRelativeUrls.get(i);
+                URL segmentFullUrl = new URL(selectedQualityFullUrl, segmentRelativeUrl);
+
+                System.out.printf("Downloading segment %d/%d: %s%n", (i + 1), segmentRelativeUrls.size(), segmentRelativeUrl);
+
+                try (InputStream segmentStream = downloadUrlStream(httpClient, segmentFullUrl.toString())) {
+                    if (segmentStream != null) {
+                        long bytesCopied = IOUtils.copy(segmentStream, fos);
+                        downloadedBytes += bytesCopied;
+                    } else {
+                        System.err.println("Warning: Failed to download segment " + segmentRelativeUrl);
+                    }
+                } catch (IOException e) {
+                    System.err.println("Error downloading segment " + segmentRelativeUrl + ": " + e.getMessage());
+                }
+            }
+
+            fos.close();
+            System.out.println("\nDownload complete!");
+            System.out.println("Saved to: " + outputFile.getAbsolutePath());
+            System.out.printf("Total downloaded size: %.2f MB%n", (double) downloadedBytes / (1024 * 1024));
+
+        } catch (Exception e) {
+            System.err.println("An unexpected error occurred: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            scanner.close();
+        }
+    }
+
+    /**
+     * Extracts the VOD ID from a given Twitch video URL.
+     * @param twitchUrl The Twitch VOD URL.
+     * @return The VOD ID as a String, or null if not found.
+     */
+    private static String getVodIdFromUrl(String twitchUrl) {
+        Pattern pattern = Pattern.compile("twitch\\.tv/videos/(\\d+)");
+        Matcher matcher = pattern.matcher(twitchUrl);
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+        return null;
+    }
+
+    /**
+     * Downloads the content of a URL as a String.
+     * @param httpClient The HttpClient instance.
+     * @param url The URL to download.
+     * @return The content as a String, or null if download fails.
+     */
+    private static String downloadUrlContent(CloseableHttpClient httpClient, String url) {
+        HttpGet httpGet = new HttpGet(url);
+        try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
+            HttpEntity entity = response.getEntity();
+            if (entity != null && response.getStatusLine().getStatusCode() == 200) {
+                return EntityUtils.toString(entity);
+            } else {
+                System.err.println("HTTP Error: " + response.getStatusLine().getStatusCode() + " - " + response.getStatusLine().getReasonPhrase() + " for " + url);
+                return null;
+            }
+        } catch (IOException e) {
+            System.err.println("Error downloading content from " + url + ": " + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Downloads the content of a URL as an InputStream.
+     * @param httpClient The HttpClient instance.
+     * @param url The URL to download.
+     * @return An InputStream of the content, or null if download fails.
+     */
+    private static InputStream downloadUrlStream(CloseableHttpClient httpClient, String url) {
+        HttpGet httpGet = new HttpGet(url);
+        try {
+            CloseableHttpResponse response = httpClient.execute(httpGet);
+            HttpEntity entity = response.getEntity();
+            if (entity != null && response.getStatusLine().getStatusCode() == 200) {
+                return entity.getContent();
+            } else {
+                System.err.println("HTTP Error: " + response.getStatusLine().getStatusCode() + " - " + response.getStatusLine().getReasonPhrase() + " for " + url);
+                // Important: If returning null, ensure the response and entity are closed
+                response.close();
+                return null;
+            }
+        } catch (IOException e) {
+            System.err.println("Error downloading stream from " + url + ": " + e.getMessage());
+            return null;
+        }
+    }
+
+
+    /**
+     * Parses the HLS master playlist (.m3u8) content to extract available qualities
+     * and their relative URLs.
+     * @param masterPlaylistContent The content of the master .m3u8 file.
+     * @return A map where keys are quality names (e.g., "720p", "Source") and values are their relative URLs.
+     */
+    private static Map<String, String> parseMasterPlaylist(String masterPlaylistContent) {
+        Map<String, String> qualities = new HashMap<>();
+        // Pattern to find lines like #EXT-X-STREAM-INF:... followed by a URL
+        Pattern pattern = Pattern.compile("#EXT-X-STREAM-INF:.*RESOLUTION=(\\d+x\\d+).*|NAME=\"([^\"]+)\".*\\n(.+\\.m3u8)");
+        // Twitch often uses "NAME" for quality like "Source", "720p", "480p" etc.
+        // It also uses RESOLUTION. We try to capture both for quality name.
+
+        // Also handle the generic #EXT-X-STREAM-INF followed by a URL
+        Pattern generalStreamPattern = Pattern.compile("#EXT-X-STREAM-INF:.*(?:RESOLUTION=(\\d+x\\d+))?.*(?:NAME=\"([^\"]+)\")?.*\\n(.+\\.m3u8)");
+
+        Matcher matcher = generalStreamPattern.matcher(masterPlaylistContent);
+
+        while (matcher.find()) {
+            String resolution = matcher.group(1); // e.g., 1920x1080
+            String name = matcher.group(2);       // e.g., Source, 720p
+            String url = matcher.group(3).trim(); // e.g., 1080p_source/index-dvr.m3u8
+
+            String qualityName = "Unknown";
+            if (name != null && !name.isEmpty()) {
+                qualityName = name;
+            } else if (resolution != null && !resolution.isEmpty()) {
+                // Convert 1920x1080 to 1080p for a more user-friendly name
+                String[] parts = resolution.split("x");
+                if (parts.length == 2) {
+                    qualityName = parts[1] + "p"; // height + "p"
+                } else {
+                    qualityName = resolution; // Fallback to raw resolution
+                }
+            }
+            qualities.put(qualityName, url);
+        }
+        return qualities;
+    }
+
+    /**
+     * Parses the HLS quality-specific playlist (.m3u8) content to extract
+     * URLs of individual video segments (.ts files).
+     * @param qualityPlaylistContent The content of the quality-specific .m3u8 file.
+     * @return A list of relative URLs for the video segments.
+     */
+    private static List<String> parseQualityPlaylist(String qualityPlaylistContent) {
+        List<String> segmentUrls = new ArrayList<>();
+        // Pattern to find lines that are .ts files (and not comments or directives)
+        Pattern segmentPattern = Pattern.compile("^(?!#EXT)(.+\\.ts)$", Pattern.MULTILINE);
+        Matcher matcher = segmentPattern.matcher(qualityPlaylistContent);
+
+        while (matcher.find()) {
+            segmentUrls.add(matcher.group(1).trim());
+        }
+        return segmentUrls;
+    }
+}
+```xml
+<!-- File: pom.xml (for Maven projects) -->
+<!-- If you are using IntelliJ IDEA or Eclipse, you would typically add these
+     dependencies to your project's build path or module settings. -->
+<project xmlns="[http://maven.apache.org/POM/4.0.0](http://maven.apache.org/POM/4.0.0)"
+         xmlns:xsi="[http://www.w3.org/2001/XMLSchema-instance](http://www.w3.org/2001/XMLSchema-instance)"
+         xsi:schemaLocation="[http://maven.apache.org/POM/4.0.0](http://maven.apache.org/POM/4.0.0) [http://maven.apache.org/xsd/maven-4.0.0.xsd](http://maven.apache.org/xsd/maven-4.0.0.xsd)">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.example</groupId>
+    <artifactId>TwitchVodDownloader</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <properties>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <dependencies>
+        <!-- Apache HttpClient for making HTTP requests -->
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.5.14</version>
+        </dependency>
+        <!-- Apache Commons IO for file operations -->
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.16.1</version>
+        </dependency>
+        <!-- For parsing JSON, although not strictly used in this HLS example,
+             it's common for API interactions. -->
+        <dependency>
+            <groupId>org.json</groupId>
+            <artifactId>json</artifactId>
+            <version>20240303</version>
+        </dependency>
+        <!-- Lombok (optional, for simplified Java code like getters/setters if used) -->
+        <!-- Although not directly used in the current version of the main class,
+             it was in your previous config, so included for completeness if needed elsewhere. -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.30</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+</project>
